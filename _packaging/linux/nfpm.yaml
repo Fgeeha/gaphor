@@ -1,0 +1,71 @@
+# nfpm configuration for Gaphor Linux packages, used by build.sh.
+# deb is built on Ubuntu, rpm on RED OS: dependencies are per packager.
+name: gaphor
+arch: amd64
+platform: linux
+version: ${PKG_VERSION}
+prerelease: ${PKG_PRERELEASE}
+version_schema: none
+release: "1"
+section: devel
+priority: optional
+maintainer: Gaphor Development Team <gaphor@gmail.com>
+description: |
+  Gaphor is the simple modeling tool.
+  It supports UML, SysML, RAAML and C4 models.
+vendor: Gaphor
+homepage: https://gaphor.org/
+license: Apache-2.0
+
+contents:
+  - src: /opt/gaphor
+    dst: /opt/gaphor
+    type: tree
+  - src: /tmp/stage/usr/bin/gaphor
+    dst: /usr/bin/gaphor
+    file_info: { mode: 0755 }
+  - src: /tmp/stage/usr/share/applications/org.gaphor.Gaphor.desktop
+    dst: /usr/share/applications/org.gaphor.Gaphor.desktop
+  - src: /tmp/stage/usr/share/metainfo/org.gaphor.Gaphor.appdata.xml
+    dst: /usr/share/metainfo/org.gaphor.Gaphor.appdata.xml
+  - src: /tmp/stage/usr/share/dbus-1/services/org.gaphor.Gaphor.service
+    dst: /usr/share/dbus-1/services/org.gaphor.Gaphor.service
+  - src: /tmp/stage/usr/share/mime/packages/org.gaphor.Gaphor.xml
+    dst: /usr/share/mime/packages/org.gaphor.Gaphor.xml
+  - src: /tmp/stage/usr/share/glib-2.0/schemas/org.gaphor.Gaphor.gschema.xml
+    dst: /usr/share/glib-2.0/schemas/org.gaphor.Gaphor.gschema.xml
+  - src: /tmp/stage/usr/share/icons/hicolor/scalable/apps/org.gaphor.Gaphor.svg
+    dst: /usr/share/icons/hicolor/scalable/apps/org.gaphor.Gaphor.svg
+  - src: /tmp/stage/usr/share/icons/hicolor/symbolic/apps/org.gaphor.Gaphor-symbolic.svg
+    dst: /usr/share/icons/hicolor/symbolic/apps/org.gaphor.Gaphor-symbolic.svg
+
+scripts:
+  postinstall: _packaging/linux/postinst.sh
+  postremove: _packaging/linux/postinst.sh
+
+overrides:
+  deb:
+    depends:
+      - python3 (>= 3.14)
+      - python3 (<< 3.15)
+      - libcairo2
+      - libgirepository-2.0-0
+      - libgtk-4-1
+      - libadwaita-1-0 (>= 1.8)
+      - libgtksourceview-5-0
+      - gir1.2-gtk-4.0
+      - gir1.2-adw-1
+      - gir1.2-gtksource-5
+    recommends:
+      - graphviz
+  rpm:
+    depends:
+      - python3.13
+      - cairo
+      - gobject-introspection
+      - gtk4
+      - gtksourceview5
+      - fribidi
+      - appstream
+    recommends:
+      - graphviz
