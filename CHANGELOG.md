@@ -1,3 +1,26 @@
+3.4.0
+-----
+
+- Add native packages for Ubuntu 26.04 (deb) and RED OS 8 (rpm)
+- Add group and ungroup for comments
+- Show actor on a lifeline
+- Notify when diagrams are exported
+- Make shortcuts work inside the toolbox pane
+- Cancel placement tool with right-button click
+- Add support for Python 3.15, drop Python 3.12
+- Remove support for macOS Intel
+
+Bug fixes:
+
+- Fix window glitches on macOS
+- Fix issue where multiplicity could show as "None"
+- Fix warning when status window is closed
+
+Internal changes:
+
+- Render the placement icon without GdkPixbuf
+- Full Poetry update
+
 3.3.2
 -----
 
