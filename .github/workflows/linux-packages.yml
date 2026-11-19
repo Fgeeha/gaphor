@@ -66,9 +66,12 @@ jobs:
         run: |
           curl -fsSL -o ru-root-ca.crt https://gu-st.ru/content/lending/russian_trusted_root_ca_pem.crt
           test "$(openssl x509 -in ru-root-ca.crt -noout -fingerprint -sha256 | cut -d= -f2)" == "$RU_ROOT_CA_SHA256"
-          # The containerd image store ignores /etc/docker/certs.d: use the system store
+          # The registry sends an outdated intermediate: add the one that signed its certificate
+          curl -fsSL -o ru-sub-ca.crt https://gu-st.ru/content/lending/russian_trusted_sub_ca_2024_pem.crt
+          openssl verify -CAfile ru-root-ca.crt ru-sub-ca.crt
           sudo install -Dm644 ru-root-ca.crt /usr/local/share/ca-certificates/russian-trusted-root-ca.crt
-          rm ru-root-ca.crt
+          sudo install -Dm644 ru-sub-ca.crt /usr/local/share/ca-certificates/russian-trusted-sub-ca-2024.crt
+          rm ru-root-ca.crt ru-sub-ca.crt
           sudo update-ca-certificates
           sudo systemctl restart docker
       - name: Build package
