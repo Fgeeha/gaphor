@@ -8,6 +8,25 @@ Older releases are available from [GitHub](https://github.com/gaphor/gaphor/rele
 
 [CI builds](https://github.com/gaphor/gaphor/actions/workflows/full-build.yml) are also available.
 
+### Ubuntu and RED OS packages
+
+Native packages are built for Ubuntu 26.04 (`.deb`) and RED OS 8 (`.rpm`).
+They are attached to each release and available as artifacts of the
+[Linux Packages](https://github.com/gaphor/gaphor/actions/workflows/linux-packages.yml)
+workflow. Install with the package manager, so dependencies are resolved:
+
+```bash
+# Ubuntu 26.04
+sudo apt install ./gaphor-<version>-ubuntu-26.04.x86_64.deb
+
+# RED OS 8
+sudo dnf install ./gaphor-<version>-redos-8.x86_64.rpm
+```
+
+Gaphor is installed in `/opt/gaphor` and can be started from the application
+menu or with the `gaphor` command. The RED OS package ships its own copy of
+GTK and libadwaita, since the versions provided by RED OS 8 are too old.
+
 ## Development Environment
 
 There are two ways to set up a development environment:

@@ -1,0 +1,97 @@
+name: Linux Packages
+
+permissions:
+  contents: read
+
+on:
+  push:
+    branches:
+      - main
+    paths-ignore:
+      - '*.md'
+  pull_request:
+    branches:
+      - main
+  release:
+    types: [published]
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # Fingerprint of the "Russian Trusted Root CA", required to pull RED OS images
+  RU_ROOT_CA_SHA256: D2:6D:2D:02:31:B7:C3:9F:92:CC:73:85:12:BA:54:10:35:19:E4:40:5D:68:B5:BD:70:3E:97:88:CA:8E:CF:31
+
+jobs:
+  package:
+    name: 📦 ${{ matrix.target.name }} (${{ matrix.target.format }})
+    runs-on: ubuntu-26.04
+    timeout-minutes: 60
+    if: "!contains(github.event.head_commit.message, 'skip ci')"
+    permissions:
+      contents: write
+    strategy:
+      fail-fast: false
+      matrix:
+        target:
+          - name: Ubuntu 26.04
+            image: ubuntu:26.04
+            format: deb
+          - name: RED OS 8
+            image: registry.red-soft.ru/ubi8/ubi:latest
+            format: rpm
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+      - name: Collect Project Data
+        id: meta
+        env:
+          TAG: ${{ github.ref_name }}
+          REF_TYPE: ${{ github.ref_type }}
+          RUN_NUMBER: ${{ github.run_number }}
+          SHA: ${{ github.sha }}
+        run: |
+          VERSION="$(python3 -c 'import tomllib; print(tomllib.load(open("pyproject.toml", "rb"))["project"]["version"])')"
+          if [[ "$REF_TYPE" == "tag" && "$TAG" == "$VERSION" ]]; then
+            echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+          else
+            echo "version=${VERSION}.dev${RUN_NUMBER}+${SHA:0:8}" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Trust RED OS registry
+        if: matrix.target.format == 'rpm'
+        run: |
+          curl -fsSL -o ru-root-ca.crt https://gu-st.ru/content/lending/russian_trusted_root_ca_pem.crt
+          test "$(openssl x509 -in ru-root-ca.crt -noout -fingerprint -sha256 | cut -d= -f2)" == "$RU_ROOT_CA_SHA256"
+          sudo install -Dm644 ru-root-ca.crt /etc/docker/certs.d/registry.red-soft.ru/ca.crt
+          rm ru-root-ca.crt
+      - name: Build package
+        env:
+          IMAGE: ${{ matrix.target.image }}
+          FORMAT: ${{ matrix.target.format }}
+          VERSION: ${{ steps.meta.outputs.version }}
+        run: |
+          mkdir -p dist
+          docker run --rm -v "$PWD:/src:ro" -v "$PWD/dist:/out" -e VERSION="$VERSION" \
+            "$IMAGE" /src/_packaging/linux/build.sh
+          echo "PACKAGE=$(cd dist && ls gaphor-*."$FORMAT")" >> "$GITHUB_ENV"
+      - name: Self-test package
+        env:
+          IMAGE: ${{ matrix.target.image }}
+        run: |
+          docker run --rm -v "$PWD/dist:/dist:ro" -v "$PWD/_packaging/linux:/scripts:ro" \
+            "$IMAGE" /scripts/self-test.sh "/dist/$PACKAGE"
+      - name: Upload package
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: ${{ env.PACKAGE }}
+          path: dist/${{ env.PACKAGE }}
+      - name: Upload Assets (release only)
+        if: github.event_name == 'release'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+        run: gh release upload "$TAG" "dist/$PACKAGE"
